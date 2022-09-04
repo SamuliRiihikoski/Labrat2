@@ -1,11 +1,19 @@
 #include <WiFi.h>
 #include <HTTPClient.h>
 
-enum class bodyType { TEMP_INFO, HEAT_WARNING, READY };  
+enum class State { INIT, RUNNING, FINISHED };
+enum class MsgType { TEMP_INFO, HEAT_WARNING, READY };
+MsgType msgType = MsgType::TEMP_INFO;
 
 const char* ssid = "AndroidAP";
 const char* password = "Park2771Uruk";
 const char* serverName = "http://maker.ifttt.com/trigger/tynnyri_tila/with/key/Lls0N0vNk00GTBStNdqBf";
+
+State state = State::INIT;
+unsigned long startTime = 0;
+unsigned long timer = 0;
+bool alertImmediately = true;
+unsigned int prevValueTemp1;
 
 void setup() 
 {  
@@ -23,31 +31,75 @@ void setup()
 
 void loop() 
 {
-  unsigned long currentSeconds = ( millis() / 1000 );
-  Serial.println(currentSeconds);
-  WiFiClient client;
-  HTTPClient http;
+  switch(state)
+  {
+    case State::INIT:
+    {
+      if ( analogRead(A3) > 0 )
+      {
+        Serial.println("Heating has started...");
+        startTime = ( millis() / 1000 );
+        timer = millis();
+        prevValueTemp1 = analogRead(A3);
+        sendEmail(msgType);
+        state = State::RUNNING;
+      }
+    }
+    break;
 
-  http.begin(client, serverName);
-  http.addHeader("Content-Type", "application/x-www-form-urlencoded");
+    case State::RUNNING:
+    {
+      Serial.println("Now we are in running state...");
+      
+      if (analogRead(A3) >= 4095 )
+      {
+        sendEmail(MsgType::READY);
+        state = State::FINISHED;
+        return;
+      }
+
+      if ( prevValueTemp1 > ( analogRead(A3) + 100 ) &&  alertImmediately )
+      {
+        Serial.println("Temp is getting too low");
+        alertImmediately = false;
+        msgType = MsgType::HEAT_WARNING;
+        sendEmail(msgType);
+        timer = 0;
+      }
+      else if ( ( prevValueTemp1 + 100 ) < analogRead(A3) && !alertImmediately )
+      {
+        Serial.println("Now heater works again");
+        alertImmediately = true;
+        msgType = MsgType::TEMP_INFO;
+        
+      }
+      
+      if ( ( millis() - timer ) > 30000 ) 
+      {
+        Serial.println("Timer interrupt");
+        timer = millis();
+        sendEmail(msgType);
+      }
+      
+
+      prevValueTemp1 = analogRead(A3);
+      delay(1000);
+    }
+    break;
+
+    case State::FINISHED:
+    {
+      // Do nothing
+    }
+    break;
+  }
   
-  String httpRequestData = "value1=" + createEmailBody(bodyType::HEAT_WARNING);
-  int httpResponseCode = http.POST(httpRequestData); 
-
-  Serial.print("HTTP Response code: ");
-  Serial.println(httpResponseCode);
-  
-  // Free resources
-  http.end();
-
-  getTempWater1();
-  delay(10000);
 }
 
 String systemClockStr() 
 {
   char str[90];
-  unsigned long currentSeconds = ( millis() / 1000 );
+  unsigned long currentSeconds = ( millis() / 1000 ) - startTime;
   unsigned int sec = currentSeconds % 60;
   unsigned int minutes = ( currentSeconds % 3600 ) / 60;
   unsigned int hours = currentSeconds / 3600;
@@ -71,39 +123,52 @@ float getTempWater1()
   return temperature;
 }
 
-String createEmailBody(const bodyType& type)
+unsigned int getTempWater2()
+{
+  return analogRead(A3);
+}
+
+void sendEmail(const MsgType& type)
 {
   String body;
+  WiFiClient client;
+  HTTPClient http;
   
   switch(type)
   {
-    case bodyType::TEMP_INFO:
+    case MsgType::TEMP_INFO:
     {
       body += "Lämmityksen aloituksesta: " + systemClockStr();
       body += "<br>Paljun tavoitelämpötila: 37.0 celciusta";
-      body += "<br>Veden 1 lämpötila: " + String( getTempWater1() );
-      body += "<br>Veden 2 lämpötila: ????";    
+      body += "<br>Veden lämpötila (1 anturi): " + String( getTempWater1() );
+      body += "<br>Veden lämpötila (2 anturi): " + String( getTempWater2() );    
     }
     break;
 
-    case bodyType::HEAT_WARNING:
+    case MsgType::HEAT_WARNING:
     {
       body += "<br>!! PALJUN KAMIINAAN TARVITAAN LISÄÄ POLTTOPUITA !!";
       body += "<br>Paljun tavoitelämpötila: 37.0 celciusta";
-      body += "<br>Veden 1 lämpötila: " + String( getTempWater1() );
-      body += "<br>Veden 2 lämpötila: ????";    
+      body += "<br>Veden lämpötila (1 anturi): " + String( getTempWater1() );
+      body += "<br>Veden lämpötila (2 anturi): " + String( getTempWater2() );     
     }
     break;
 
-    case bodyType::READY:
+    case MsgType::READY:
     {
       body += "PALJU ON KYLPYVALMIS";
       body += "<br>Paljun tavoitelämpötila: 37.0 celciusta";
       body += "<br>Veden lämpötila (1 anturi): " + String( getTempWater1() );
-      body += "<br>Veden lämpötila (2 anturi): ????";   
+      body += "<br>Veden lämpötila (2 anturi): " + String( getTempWater2() );    
     }
     break;
   }
 
-  return body;
+  http.begin(client, serverName);
+  http.addHeader("Content-Type", "application/x-www-form-urlencoded");
+  
+  String httpRequestData = "value1=" + body;
+  int httpResponseCode = http.POST(httpRequestData); 
+  
+  http.end();
 }
