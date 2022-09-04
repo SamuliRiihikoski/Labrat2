@@ -1,0 +1,46 @@
+[1mdiff --git a/kotiautomaatio/tests/ifttt_testing/ifttt_testing/ifttt_testing.ino b/kotiautomaatio/tests/ifttt_testing/ifttt_testing/ifttt_testing.ino[m
+[1mindex 7a8b1df..65e488e 100644[m
+[1m--- a/kotiautomaatio/tests/ifttt_testing/ifttt_testing/ifttt_testing.ino[m
+[1m+++ b/kotiautomaatio/tests/ifttt_testing/ifttt_testing/ifttt_testing.ino[m
+[36m@@ -31,7 +31,10 @@[m [mvoid loop()[m
+ [m
+   http.begin(client, serverName);[m
+   http.addHeader("Content-Type", "application/x-www-form-urlencoded");[m
+[31m-  String body = "Lämmityksen aloituksesta: " + systemClockStr();[m
+[32m+[m[41m  [m
+[32m+[m[32m  String body;[m
+[32m+[m[32m  body += "Lämmityksen aloituksesta: " + systemClockStr();[m
+[32m+[m[32m  body += "<br>Veden lämpötila: " + String( getTempWater1() );[m
+   [m
+   String httpRequestData = "value1=" + body;[m
+   int httpResponseCode = http.POST(httpRequestData); [m
+[36m@@ -41,7 +44,8 @@[m [mvoid loop()[m
+   [m
+   // Free resources[m
+   http.end();[m
+[31m-  [m
+[32m+[m
+[32m+[m[32m  getTempWater1();[m
+   delay(10000);[m
+ }[m
+ [m
+[36m@@ -55,3 +59,19 @@[m [mString systemClockStr()[m
+   sprintf(str, "%02u:%02u:%02u", hours, minutes, sec);[m
+   return String(str);[m
+ }[m
+[32m+[m
+[32m+[m[32mfloat getTempWater1()[m
+[32m+[m[32m{[m
+[32m+[m[32m  const int B = 4275;[m
+[32m+[m[32m  const int R0 = 100000;[m
+[32m+[m
+[32m+[m[32m  int a = analogRead(A0);[m
+[32m+[m[32m  float R = 4095.0/a - 1.0;[m
+[32m+[m[32m  R = R0*R;[m
+[32m+[m
+[32m+[m[32m  float temperature = 1.0/(log(R/R0)/B+1/298.15) - 273.15;[m
+[32m+[m[32m  Serial.print("temperature: ");[m
+[32m+[m[32m  Serial.println(temperature);[m
+[32m+[m
+[32m+[m[32m  return temperature;[m
+[32m+[m[32m}[m

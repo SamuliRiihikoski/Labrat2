@@ -31,7 +31,10 @@ void loop()
 
   http.begin(client, serverName);
   http.addHeader("Content-Type", "application/x-www-form-urlencoded");
-  String body = "Lämmityksen aloituksesta: " + systemClockStr();
+  
+  String body;
+  body += "Lämmityksen aloituksesta: " + systemClockStr();
+  body += "<br>Veden lämpötila: " + String( getTempWater1() );
   
   String httpRequestData = "value1=" + body;
   int httpResponseCode = http.POST(httpRequestData); 
@@ -41,7 +44,8 @@ void loop()
   
   // Free resources
   http.end();
-  
+
+  getTempWater1();
   delay(10000);
 }
 
@@ -54,4 +58,20 @@ String systemClockStr()
   unsigned int hours = currentSeconds / 3600;
   sprintf(str, "%02u:%02u:%02u", hours, minutes, sec);
   return String(str);
+}
+
+float getTempWater1()
+{
+  const int B = 4275;
+  const int R0 = 100000;
+
+  int a = analogRead(A0);
+  float R = 4095.0/a - 1.0;
+  R = R0*R;
+
+  float temperature = 1.0/(log(R/R0)/B+1/298.15) - 273.15;
+  Serial.print("temperature: ");
+  Serial.println(temperature);
+
+  return temperature;
 }
