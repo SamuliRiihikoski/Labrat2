@@ -1,6 +1,8 @@
 #include <WiFi.h>
 #include <HTTPClient.h>
 
+enum class bodyType { TEMP_INFO, HEAT_WARNING, READY };  
+
 const char* ssid = "AndroidAP";
 const char* password = "Park2771Uruk";
 const char* serverName = "http://maker.ifttt.com/trigger/tynnyri_tila/with/key/Lls0N0vNk00GTBStNdqBf";
@@ -17,9 +19,6 @@ void setup()
   }
   Serial.println("");
   Serial.println("Wifi connected");
-
-
-
 }
 
 void loop() 
@@ -32,11 +31,7 @@ void loop()
   http.begin(client, serverName);
   http.addHeader("Content-Type", "application/x-www-form-urlencoded");
   
-  String body;
-  body += "Lämmityksen aloituksesta: " + systemClockStr();
-  body += "<br>Veden lämpötila: " + String( getTempWater1() );
-  
-  String httpRequestData = "value1=" + body;
+  String httpRequestData = "value1=" + createEmailBody(bodyType::HEAT_WARNING);
   int httpResponseCode = http.POST(httpRequestData); 
 
   Serial.print("HTTP Response code: ");
@@ -74,4 +69,41 @@ float getTempWater1()
   Serial.println(temperature);
 
   return temperature;
+}
+
+String createEmailBody(const bodyType& type)
+{
+  String body;
+  
+  switch(type)
+  {
+    case bodyType::TEMP_INFO:
+    {
+      body += "Lämmityksen aloituksesta: " + systemClockStr();
+      body += "<br>Paljun tavoitelämpötila: 37.0 celciusta";
+      body += "<br>Veden 1 lämpötila: " + String( getTempWater1() );
+      body += "<br>Veden 2 lämpötila: ????";    
+    }
+    break;
+
+    case bodyType::HEAT_WARNING:
+    {
+      body += "<br>!! PALJUN KAMIINAAN TARVITAAN LISÄÄ POLTTOPUITA !!";
+      body += "<br>Paljun tavoitelämpötila: 37.0 celciusta";
+      body += "<br>Veden 1 lämpötila: " + String( getTempWater1() );
+      body += "<br>Veden 2 lämpötila: ????";    
+    }
+    break;
+
+    case bodyType::READY:
+    {
+      body += "PALJU ON KYLPYVALMIS";
+      body += "<br>Paljun tavoitelämpötila: 37.0 celciusta";
+      body += "<br>Veden lämpötila (1 anturi): " + String( getTempWater1() );
+      body += "<br>Veden lämpötila (2 anturi): ????";   
+    }
+    break;
+  }
+
+  return body;
 }
