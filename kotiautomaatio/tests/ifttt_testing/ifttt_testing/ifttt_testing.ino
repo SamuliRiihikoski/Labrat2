@@ -7,7 +7,7 @@ MsgType msgType = MsgType::TEMP_INFO;
 
 const char* ssid = "AndroidAP";
 const char* password = "Park2771Uruk";
-const char* serverName = "http://maker.ifttt.com/trigger/tynnyri_tila/with/key/Lls0N0vNk00GTBStNdqBf";
+const char* serverName = "http://maker.ifttt.com/trigger/palju_tila/with/key/cr1htqdHyv8u37TsqFjgMh";
 
 State state = State::INIT;
 unsigned long startTime = 0;
