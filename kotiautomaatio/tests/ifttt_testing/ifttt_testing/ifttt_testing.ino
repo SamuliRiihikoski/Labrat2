@@ -64,7 +64,7 @@ void loop()
       }
 
       // KUN LÄMPÖTILA ON ALKAA LASKEA
-      if (getValueTemp(Sensor::TOP) < prevValueTemp1( &&  alertImmediately )
+      if (getTempValues(Sensor::TOP) < prevValueTemp1( &&  alertImmediately )
       {
         Serial.println("Temp is getting too low");      
         alertImmediately = false;
@@ -74,7 +74,7 @@ void loop()
       }
 
       // KUN LÄMPÖTILA ALKAA TAAS NOUSEMAAN
-      else if (getValueTemp(Sensor::TOP)>prevValueTemp1) && !alertImmediately )
+      else if (getTempValues(Sensor::TOP)>prevValueTemp1) && !alertImmediately )
       {
         Serial.println("Now heater works again");
         alertImmediately = true;
