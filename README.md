@@ -5,3 +5,6 @@ Koulun labrat2 kurssin repo.
 - Lähettää sähköpostin missä:
 	- Aikaleima
 	- Veden lämpötila
+
+1.0v
+- Perustoiminallisuus paljun lämmittämiseen toteutettu.
