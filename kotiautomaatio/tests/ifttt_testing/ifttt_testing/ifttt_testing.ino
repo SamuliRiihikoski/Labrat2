@@ -3,6 +3,7 @@
 
 enum class State { INIT, RUNNING, FINISHED };
 enum class MsgType { TEMP_INFO, HEAT_WARNING, READY };
+enum class Sensor {TOP, BOTTOM};
 MsgType msgType = MsgType::TEMP_INFO;
 
 const char* ssid = "AndroidAP";
@@ -14,6 +15,9 @@ unsigned long startTime = 0;
 unsigned long timer = 0;
 bool alertImmediately = true;
 unsigned int prevValueTemp1;
+
+//AnalogRead(A3) = Bottom (0)
+//AnalogRead(A4) = Top (1)
 
 void setup() 
 {  
@@ -35,12 +39,12 @@ void loop()
   {
     case State::INIT:
     {
-      if ( analogRead(A3) > 0 )
+      if (getTempValues(t))
       {
         Serial.println("Heating has started...");
         startTime = ( millis() / 1000 );
         timer = millis();
-        prevValueTemp1 = analogRead(A3);
+        prevValueTemp1 = getTempValues(Sensor::TOP);
         sendEmail(msgType);
         state = State::RUNNING;
       }
@@ -51,22 +55,22 @@ void loop()
     {
       Serial.println("Now we are in running state...");
       
-      if (analogRead(A3) >= 4095 )
+      if (getTempValues(Sensor::TOP) == 37) //get top sensor value
       {
-        sendEmail(MsgType::READY);
+        sendEmail(MsgType::READY);                      //KUN LÄMMMITYS ON VALMIS
         state = State::FINISHED;
         return;
       }
 
-      if ( prevValueTemp1 > ( analogRead(A3) + 100 ) &&  alertImmediately )
+      if (getValueTemp(Sensor::TOP) < prevValueTemp1( &&  alertImmediately )
       {
-        Serial.println("Temp is getting too low");
+        Serial.println("Temp is getting too low");      //KUN LÄMPÖTILA ON ALKAA LASKEA
         alertImmediately = false;
         msgType = MsgType::HEAT_WARNING;
         sendEmail(msgType);
         timer = 0;
       }
-      else if ( ( prevValueTemp1 + 100 ) < analogRead(A3) && !alertImmediately )
+      else if (getValueTemp(Sensor::TOP)>prevValueTemp1) && !alertImmediately )
       {
         Serial.println("Now heater works again");
         alertImmediately = true;
@@ -80,10 +84,8 @@ void loop()
         timer = millis();
         sendEmail(msgType);
       }
-      
-
-      prevValueTemp1 = analogRead(A3);
-      delay(1000);
+      prevValueTemp1 = getTempValues(Sensor::TOP);
+      delay(500);
     }
     break;
 
@@ -93,10 +95,8 @@ void loop()
     }
     break;
   }
-
-  getTempNTC();
-  delay(1000);
   
+  delay(1000);
 }
 
 String systemClockStr() 
@@ -110,32 +110,36 @@ String systemClockStr()
   return String(str);
 }
 
-float getTempNTC()
+float getTempValues(Sensor sensor)
 {
-  const float vRef = 3.3;
-  const int R = 10000; 
-  float RT, VR, ln, TX, T0, VRT;
+  if (sensor == Sensor::TOP)
+  {
+    const float vRef = 3.3;
+    const int R = 10000; 
+    float RT, VR, ln, TX, T0, VRT;
+    
+    T0 = 25 + 273.15;
+    VRT = analogRead(A4);
+    VRT = ( 3.3 / 4095 ) * VRT;
+    VR = 3.3 - VRT;
+    RT = VRT / (VR / R);
+    
+    ln = log(RT / 10000);
+    TX = (1 / ((ln / 3435) + (1 / T0)));
+    
+    TX = TX - 273.15;
+    
+    Serial.print("NTC temp: ");
+    Serial.println(TX);
+    
+    return TX;
+  }
+  else if (sensor == Sensor::BOTTOM)
+  {  
+    return analogRead(A3);
+  }
 
-  T0 = 25 + 273.15;
-  VRT = analogRead(A4);
-  VRT = ( 3.3 / 4095 ) * VRT;
-  VR = 3.3 - VRT;
-  RT = VRT / (VR / R);
-
-  ln = log(RT / 10000);
-  TX = (1 / ((ln / 3435) + (1 / T0)));
-
-  TX = TX - 273.15;
-
-  Serial.print("NTC temp: ");
-  Serial.println(TX);
-
-  return analogRead(A4);
-}
-
-unsigned int getTempWater2()
-{
-  return analogRead(A3);
+  return float{};
 }
 
 void sendEmail(const MsgType& type)
