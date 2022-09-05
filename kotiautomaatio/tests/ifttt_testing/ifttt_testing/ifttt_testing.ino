@@ -94,7 +94,7 @@ void loop()
     break;
   }
 
-  Serial.println(getTempNTC());
+  getTempNTC();
   delay(1000);
   
 }
@@ -112,21 +112,23 @@ String systemClockStr()
 
 float getTempNTC()
 {
+  const float vRef = 3.3;
+  const int R = 10000; 
+  float RT, VR, ln, TX, T0, VRT;
 
-  unsigned int tempVolt = ( analogRead(A4) / 4095 ) * 3.3;
-  
-  /*
-  const int B = 4275;
-  const int R0 = 100000;
+  T0 = 25 + 273.15;
+  VRT = analogRead(A4);
+  VRT = ( 3.3 / 4095 ) * VRT;
+  VR = 3.3 - VRT;
+  RT = VRT / (VR / R);
 
-  int a = analogRead(A4);
-  float R = 4095.0/a - 1.0;
-  R = R0*R;
+  ln = log(RT / 10000);
+  TX = (1 / ((ln / 3435) + (1 / T0)));
 
-  float temperature = 1.0/(log(R/R0)/B+1/298.15) - 273.15;
-  Serial.print("temperature: ");
-  Serial.println(temperature);
-  */
+  TX = TX - 273.15;
+
+  Serial.print("NTC temp: ");
+  Serial.println(TX);
 
   return analogRead(A4);
 }
