@@ -18,6 +18,7 @@ float sensorTopMaxTemp;
 
 //AnalogRead(A3) = Bottom (0)
 //AnalogRead(A4) = Top (1)
+// anturi 2 on korkeudella 30,78. (ylhäältä-alas)
 
 void setup() 
 {  
@@ -56,7 +57,7 @@ void loop()
       Serial.println("Now we are in running state...");
 
       //KUN LÄMMMITYS ON VALMIS
-      if (getTempValues(Sensor::TOP) == 37) //get top sensor value
+      if (getTempValues(Sensor::TOP) >= 60 && getTempValues(Sensor::BOTTOM) >= 60) //get top sensor value
       {
         sendEmail(MsgType::READY);                     
         state = State::FINISHED;
@@ -73,7 +74,7 @@ void loop()
         timer = 0;
       }
 
-      // KUN LÄMPÖTILA ALKAA TAAS NOUSEMAAN
+      // KUN LÄMPÖTILA ALKAA LASKUN JÄLKEEN TAAS NOUSEMAAN
       else if ( getTempValues(Sensor::TOP) > sensorTopMaxTemp && !alertImmediately )
       {
         Serial.println("Now heater works again");
@@ -82,13 +83,14 @@ void loop()
         
       }
       
-      if ( ( millis() - timer ) > 30000 ) 
+      if ( ( millis() - timer ) > 600000 ) // Sending email every 10 mins.
       {
-        Serial.println("Timer interrupt");
+        Serial.println("Send email interrupt");
         timer = millis();
         sendEmail(msgType);
       }
 
+      // let's following max temp. If current temp drops too much from max let's send heating alarm.
       float temp = getTempValues(Sensor::TOP);
 
       if ( temp > sensorTopMaxTemp )
@@ -100,12 +102,14 @@ void loop()
       Serial.println(getTempValues(Sensor::TOP));
       Serial.print("Potikka: ");
       Serial.println(getTempValues(Sensor::BOTTOM));
+      
       delay(1000);
     }
     break;
 
     case State::FINISHED:
     {
+      Serial.println("FINISHED");
       // Do nothing
     }
     break;
@@ -148,7 +152,7 @@ float getTempValues(Sensor sensor)
   }
   else if (sensor == Sensor::BOTTOM)
   {  
-    return analogRead(A3);
+    return ( analogRead(A3) / (float)4095 ) * 60;
   }
 
   return float{};
