@@ -39,7 +39,7 @@ void loop()
   {
     case State::INIT:
     {
-      if (getTempValues(t))
+      if (getTempValues(Sensor::TOP))
       {
         Serial.println("Heating has started...");
         startTime = ( millis() / 1000 );
