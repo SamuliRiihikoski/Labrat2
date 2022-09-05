@@ -93,6 +93,9 @@ void loop()
     }
     break;
   }
+
+  Serial.println(getTempNTC());
+  delay(1000);
   
 }
 
@@ -107,20 +110,25 @@ String systemClockStr()
   return String(str);
 }
 
-float getTempWater1()
+float getTempNTC()
 {
+
+  unsigned int tempVolt = ( analogRead(A4) / 4095 ) * 3.3;
+  
+  /*
   const int B = 4275;
   const int R0 = 100000;
 
-  int a = analogRead(A0);
+  int a = analogRead(A4);
   float R = 4095.0/a - 1.0;
   R = R0*R;
 
   float temperature = 1.0/(log(R/R0)/B+1/298.15) - 273.15;
   Serial.print("temperature: ");
   Serial.println(temperature);
+  */
 
-  return temperature;
+  return analogRead(A4);
 }
 
 unsigned int getTempWater2()
@@ -140,7 +148,7 @@ void sendEmail(const MsgType& type)
     {
       body += "Lämmityksen aloituksesta: " + systemClockStr();
       body += "<br>Paljun tavoitelämpötila: 37.0 celciusta";
-      body += "<br>Veden lämpötila (1 anturi): " + String( getTempWater1() );
+      body += "<br>Veden lämpötila (1 anturi): " + String( getTempNTC() );
       body += "<br>Veden lämpötila (2 anturi): " + String( getTempWater2() );    
     }
     break;
@@ -149,7 +157,7 @@ void sendEmail(const MsgType& type)
     {
       body += "<br>!! PALJUN KAMIINAAN TARVITAAN LISÄÄ POLTTOPUITA !!";
       body += "<br>Paljun tavoitelämpötila: 37.0 celciusta";
-      body += "<br>Veden lämpötila (1 anturi): " + String( getTempWater1() );
+      body += "<br>Veden lämpötila (1 anturi): " + String( getTempNTC() );
       body += "<br>Veden lämpötila (2 anturi): " + String( getTempWater2() );     
     }
     break;
@@ -158,7 +166,7 @@ void sendEmail(const MsgType& type)
     {
       body += "PALJU ON KYLPYVALMIS";
       body += "<br>Paljun tavoitelämpötila: 37.0 celciusta";
-      body += "<br>Veden lämpötila (1 anturi): " + String( getTempWater1() );
+      body += "<br>Veden lämpötila (1 anturi): " + String( getTempNTC() );
       body += "<br>Veden lämpötila (2 anturi): " + String( getTempWater2() );    
     }
     break;
