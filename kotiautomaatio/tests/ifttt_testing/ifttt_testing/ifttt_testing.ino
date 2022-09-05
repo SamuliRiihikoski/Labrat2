@@ -14,7 +14,7 @@ State state = State::INIT;
 unsigned long startTime = 0;
 unsigned long timer = 0;
 bool alertImmediately = true;
-unsigned int prevValueTemp1;
+float sensorTopMaxTemp;
 
 //AnalogRead(A3) = Bottom (0)
 //AnalogRead(A4) = Top (1)
@@ -44,7 +44,7 @@ void loop()
         Serial.println("Heating has started...");
         startTime = ( millis() / 1000 );
         timer = millis();
-        prevValueTemp1 = getTempValues(Sensor::TOP);
+        sensorTopMaxTemp = getTempValues(Sensor::TOP);
         sendEmail(msgType);
         state = State::RUNNING;
       }
@@ -64,7 +64,7 @@ void loop()
       }
 
       // KUN LÄMPÖTILA ON ALKAA LASKEA
-      if (getTempValues(Sensor::TOP) < prevValueTemp1( &&  alertImmediately )
+      if ( ( sensorTopMaxTemp - getTempValues(Sensor::TOP) > 1.0 ) && alertImmediately )
       {
         Serial.println("Temp is getting too low");      
         alertImmediately = false;
@@ -74,7 +74,7 @@ void loop()
       }
 
       // KUN LÄMPÖTILA ALKAA TAAS NOUSEMAAN
-      else if (getTempValues(Sensor::TOP)>prevValueTemp1) && !alertImmediately )
+      else if ( getTempValues(Sensor::TOP) > sensorTopMaxTemp && !alertImmediately )
       {
         Serial.println("Now heater works again");
         alertImmediately = true;
@@ -88,8 +88,19 @@ void loop()
         timer = millis();
         sendEmail(msgType);
       }
-      prevValueTemp1 = getTempValues(Sensor::TOP);
-      delay(500);
+
+      float temp = getTempValues(Sensor::TOP);
+
+      if ( temp > sensorTopMaxTemp )
+      {
+        sensorTopMaxTemp = getTempValues(Sensor::TOP);
+      }
+
+      Serial.print("NTC: ");
+      Serial.println(getTempValues(Sensor::TOP));
+      Serial.print("Potikka: ");
+      Serial.println(getTempValues(Sensor::BOTTOM));
+      delay(1000);
     }
     break;
 
@@ -133,9 +144,6 @@ float getTempValues(Sensor sensor)
     
     TX = TX - 273.15;
     
-    Serial.print("NTC temp: ");
-    Serial.println(TX);
-    
     return TX;
   }
   else if (sensor == Sensor::BOTTOM)
@@ -158,8 +166,8 @@ void sendEmail(const MsgType& type)
     {
       body += "Lämmityksen aloituksesta: " + systemClockStr();
       body += "<br>Paljun tavoitelämpötila: 37.0 celciusta";
-      body += "<br>Veden lämpötila (1 anturi): " + String( getTempNTC() );
-      body += "<br>Veden lämpötila (2 anturi): " + String( getTempWater2() );    
+      body += "<br>Veden lämpötila (1 anturi): " + String( getTempValues( Sensor::TOP ) );
+      body += "<br>Veden lämpötila (2 anturi): " + String( getTempValues( Sensor::BOTTOM ) );    
     }
     break;
 
@@ -167,8 +175,8 @@ void sendEmail(const MsgType& type)
     {
       body += "<br>!! PALJUN KAMIINAAN TARVITAAN LISÄÄ POLTTOPUITA !!";
       body += "<br>Paljun tavoitelämpötila: 37.0 celciusta";
-      body += "<br>Veden lämpötila (1 anturi): " + String( getTempNTC() );
-      body += "<br>Veden lämpötila (2 anturi): " + String( getTempWater2() );     
+      body += "<br>Veden lämpötila (1 anturi): " + String( getTempValues(Sensor::TOP ) );
+      body += "<br>Veden lämpötila (2 anturi): " + String( getTempValues(Sensor::BOTTOM ) );     
     }
     break;
 
@@ -176,8 +184,8 @@ void sendEmail(const MsgType& type)
     {
       body += "PALJU ON KYLPYVALMIS";
       body += "<br>Paljun tavoitelämpötila: 37.0 celciusta";
-      body += "<br>Veden lämpötila (1 anturi): " + String( getTempNTC() );
-      body += "<br>Veden lämpötila (2 anturi): " + String( getTempWater2() );    
+      body += "<br>Veden lämpötila (1 anturi): " + String( getTempValues(Sensor::TOP ) );
+      body += "<br>Veden lämpötila (2 anturi): " + String( getTempValues(Sensor::BOTTOM ) );    
     }
     break;
   }
