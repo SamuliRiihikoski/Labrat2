@@ -54,22 +54,26 @@ void loop()
     case State::RUNNING:
     {
       Serial.println("Now we are in running state...");
-      
+
+      //KUN LÄMMMITYS ON VALMIS
       if (getTempValues(Sensor::TOP) == 37) //get top sensor value
       {
-        sendEmail(MsgType::READY);                      //KUN LÄMMMITYS ON VALMIS
+        sendEmail(MsgType::READY);                     
         state = State::FINISHED;
         return;
       }
 
+      // KUN LÄMPÖTILA ON ALKAA LASKEA
       if (getValueTemp(Sensor::TOP) < prevValueTemp1( &&  alertImmediately )
       {
-        Serial.println("Temp is getting too low");      //KUN LÄMPÖTILA ON ALKAA LASKEA
+        Serial.println("Temp is getting too low");      
         alertImmediately = false;
         msgType = MsgType::HEAT_WARNING;
         sendEmail(msgType);
         timer = 0;
       }
+
+      // KUN LÄMPÖTILA ALKAA TAAS NOUSEMAAN
       else if (getValueTemp(Sensor::TOP)>prevValueTemp1) && !alertImmediately )
       {
         Serial.println("Now heater works again");
