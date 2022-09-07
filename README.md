@@ -8,3 +8,6 @@ Koulun labrat2 kurssin repo.
 
 1.0v
 - Perustoiminallisuus paljun lämmittämiseen toteutettu.
+
+1.2v
+- Unitila toteutettu
