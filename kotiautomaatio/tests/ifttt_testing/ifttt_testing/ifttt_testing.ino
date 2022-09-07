@@ -1,20 +1,25 @@
 #include <WiFi.h>
 #include <HTTPClient.h>
 
+#define uS_TO_S_FACTOR 1000000
+#define TIME_TO_SLEEP  5
+
 enum class State { INIT, RUNNING, FINISHED };
 enum class MsgType { TEMP_INFO, HEAT_WARNING, READY };
 enum class Sensor {TOP, BOTTOM};
+
 MsgType msgType = MsgType::TEMP_INFO;
 
 const char* ssid = "AndroidAP";
 const char* password = "Park2771Uruk";
 const char* serverName = "http://maker.ifttt.com/trigger/palju_tila/with/key/cr1htqdHyv8u37TsqFjgMh";
 
-State state = State::INIT;
-unsigned long startTime = 0;
-unsigned long timer = 0;
-bool alertImmediately = true;
-float sensorTopMaxTemp;
+RTC_DATA_ATTR State state = State::INIT;
+RTC_DATA_ATTR unsigned long startTime = 0;
+RTC_DATA_ATTR unsigned long currentTime = 0;
+RTC_DATA_ATTR unsigned long timer = 0;
+RTC_DATA_ATTR bool alertImmediately = true;
+RTC_DATA_ATTR float sensorTopMaxTemp;
 
 //AnalogRead(A3) = Bottom (0)
 //AnalogRead(A4) = Top (1)
@@ -23,15 +28,7 @@ float sensorTopMaxTemp;
 void setup() 
 {  
   Serial.begin(115200);
-
-  // Connect to WiFi
-  WiFi.begin(ssid, password);
-  while( WiFi.status() != WL_CONNECTED ) {
-    delay(500);
-    Serial.print(".");
-  }
-  Serial.println("");
-  Serial.println("Wifi connected");
+  esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
 }
 
 void loop() 
@@ -43,8 +40,8 @@ void loop()
       if (getTempValues(Sensor::TOP))
       {
         Serial.println("Heating has started...");
-        startTime = ( millis() / 1000 );
-        timer = millis();
+        startTime = currentTime;
+        timer = currentTime;
         sensorTopMaxTemp = getTempValues(Sensor::TOP);
         sendEmail(msgType);
         state = State::RUNNING;
@@ -83,10 +80,10 @@ void loop()
         
       }
       
-      if ( ( millis() - timer ) > 600000 ) // Sending email every 10 mins.
+      if ( ( currentTime - timer ) > 60000 ) // Sending email every 10 mins.
       {
         Serial.println("Send email interrupt");
-        timer = millis();
+        timer = currentTime;
         sendEmail(msgType);
       }
 
@@ -97,13 +94,6 @@ void loop()
       {
         sensorTopMaxTemp = getTempValues(Sensor::TOP);
       }
-
-      Serial.print("NTC: ");
-      Serial.println(getTempValues(Sensor::TOP));
-      Serial.print("Potikka: ");
-      Serial.println(getTempValues(Sensor::BOTTOM));
-      
-      delay(1000);
     }
     break;
 
@@ -114,14 +104,19 @@ void loop()
     }
     break;
   }
+  Serial.print("CurrentTime: ");
+  Serial.println(currentTime);
+  delay(1000); // with this we make sure Serial.print gets finished before going sleep mode
+
+  currentTime += millis() + ( TIME_TO_SLEEP * 1000 );
   
-  delay(1000);
+  esp_deep_sleep_start();
 }
 
 String systemClockStr() 
 {
   char str[90];
-  unsigned long currentSeconds = ( millis() / 1000 ) - startTime;
+  unsigned long currentSeconds = ( currentTime / 1000 ) - ( startTime / 1000 );
   unsigned int sec = currentSeconds % 60;
   unsigned int minutes = ( currentSeconds % 3600 ) / 60;
   unsigned int hours = currentSeconds / 3600;
@@ -133,6 +128,7 @@ float getTempValues(Sensor sensor)
 {
   if (sensor == Sensor::TOP)
   {
+    
     const float vRef = 3.3;
     const int R = 10000; 
     float RT, VR, ln, TX, T0, VRT;
@@ -149,6 +145,7 @@ float getTempValues(Sensor sensor)
     TX = TX - 273.15;
     
     return TX;
+    
   }
   else if (sensor == Sensor::BOTTOM)
   {  
@@ -159,7 +156,17 @@ float getTempValues(Sensor sensor)
 }
 
 void sendEmail(const MsgType& type)
-{
+{  
+  // Connect to WiFi
+  WiFi.begin(ssid, password);
+  
+  while( WiFi.status() != WL_CONNECTED ) {
+    delay(500);
+    Serial.print(".");
+  }
+  
+  Serial.println("wifi connected.");
+  
   String body;
   WiFiClient client;
   HTTPClient http;
@@ -201,4 +208,5 @@ void sendEmail(const MsgType& type)
   int httpResponseCode = http.POST(httpRequestData); 
   
   http.end();
+  WiFi.disconnect();
 }
