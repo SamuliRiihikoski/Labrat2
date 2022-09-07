@@ -159,10 +159,18 @@ void sendEmail(const MsgType& type)
 {  
   // Connect to WiFi
   WiFi.begin(ssid, password);
-  
+
+  unsigned int connectionSteps = 0;
   while( WiFi.status() != WL_CONNECTED ) {
-    delay(500);
+    delay(1000);
     Serial.print(".");
+
+    if (connectionSteps >= 20)
+    {
+      Serial.println("Not able to connect to Wifi. Emai not send.");
+      return;
+    }
+    connectionSteps++;
   }
   
   Serial.println("wifi connected.");
