@@ -2,7 +2,7 @@
 #include <HTTPClient.h>
 
 #define uS_TO_S_FACTOR 1000000
-#define TIME_TO_SLEEP  5
+#define SECONDS_IN_SLEEP  5
 
 enum class State { INIT, RUNNING, FINISHED };
 enum class MsgType { TEMP_INFO, HEAT_WARNING, READY };
@@ -28,7 +28,7 @@ RTC_DATA_ATTR float sensorTopMaxTemp;
 void setup() 
 {  
   Serial.begin(115200);
-  esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
+  esp_sleep_enable_timer_wakeup(SECONDS_IN_SLEEP * uS_TO_S_FACTOR);
 }
 
 void loop() 
@@ -104,11 +104,9 @@ void loop()
     }
     break;
   }
-  Serial.print("CurrentTime: ");
-  Serial.println(currentTime);
-  delay(1000); // with this we make sure Serial.print gets finished before going sleep mode
 
-  currentTime += millis() + ( TIME_TO_SLEEP * 1000 );
+  delay(1000); // with this we make sure Serial.print gets finished before going sleep mode
+  currentTime += millis() + ( SECONDS_IN_SLEEP * 1000 );
   
   esp_deep_sleep_start();
 }
