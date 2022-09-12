@@ -1,5 +1,6 @@
 #include <WiFi.h>
 #include <HTTPClient.h>
+#include "esp_adc_cal.h"
 
 #define uS_TO_S_FACTOR 1000000
 #define SECONDS_IN_SLEEP  5
@@ -103,6 +104,7 @@ void loop()
       // Do nothing
     }
     break;
+  }
 
   delay(1000); // with this we make sure Serial.print gets finished before going sleep mode
   currentTime += millis() + ( SECONDS_IN_SLEEP * 1000 );
@@ -131,7 +133,7 @@ float getTempValues(Sensor sensor)
     float RT, VR, ln, TX, T0, VRT;
     
     T0 = 25 + 273.15;
-    VRT = analogRead(A4);
+    VRT = ReadVoltage(Sensor::TOP);
     VRT = ( 3.3 / 4095 ) * VRT;
     VR = 3.3 - VRT;
     RT = VRT / (VR / R);
@@ -146,7 +148,7 @@ float getTempValues(Sensor sensor)
   }
   else if (sensor == Sensor::BOTTOM)
   {  
-    return ( analogRead(A3) / (float)4095 ) * 60;
+    return ( ReadVoltage(Sensor::BOTTOM) / (float)4095 ) * 60;
   }
 
   return float{};
@@ -214,4 +216,21 @@ void sendEmail(const MsgType& type)
   
   http.end();
   WiFi.disconnect();
+}
+
+float ReadVoltage(Sensor sensor) {
+  float calibration  = 1.000; 
+  float vref = 1100;
+  esp_adc_cal_characteristics_t adc_chars;
+  esp_adc_cal_characterize(ADC_UNIT_1, ADC_ATTEN_DB_11, ADC_WIDTH_BIT_12, 1100, &adc_chars);
+  vref = adc_chars.vref; 
+
+  float value;
+  if (sensor == Sensor::BOTTOM)
+    value = (analogRead(A3) / 4095.0) * 3.3 * (1100 / vref) * calibration;
+  else 
+    value = (analogRead(A4) / 4095.0) * 3.3 * (1100 / vref) * calibration;
+
+  return ( value / 3.279) * 4095;
+
 }
