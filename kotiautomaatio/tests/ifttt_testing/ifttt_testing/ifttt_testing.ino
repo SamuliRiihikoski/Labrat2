@@ -103,7 +103,6 @@ void loop()
       // Do nothing
     }
     break;
-  }
 
   delay(1000); // with this we make sure Serial.print gets finished before going sleep mode
   currentTime += millis() + ( SECONDS_IN_SLEEP * 1000 );
@@ -158,17 +157,17 @@ void sendEmail(const MsgType& type)
   // Connect to WiFi
   WiFi.begin(ssid, password);
 
-  unsigned int connectionSteps = 0;
+  unsigned int connectionCounter = 0;
   while( WiFi.status() != WL_CONNECTED ) {
     delay(1000);
     Serial.print(".");
 
-    if (connectionSteps >= 20)
+    if (connectionCounter >= 20)
     {
-      Serial.println("Not able to connect to Wifi. Emai not send.");
+      Serial.println("Not able to connect to Wifi. Not able to send en email.");
       return;
     }
-    connectionSteps++;
+    connectionCounter++;
   }
   
   Serial.println("wifi connected.");
