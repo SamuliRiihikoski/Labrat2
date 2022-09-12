@@ -14,6 +14,7 @@ MsgType msgType = MsgType::TEMP_INFO;
 const char* ssid = "AndroidAP";
 const char* password = "Park2771Uruk";
 const char* serverName = "http://maker.ifttt.com/trigger/palju_tila/with/key/cr1htqdHyv8u37TsqFjgMh";
+const char* serverKylpyReady = "http://maker.ifttt.com/trigger/ready_to_kylpy/with/key/cr1htqdHyv8u37TsqFjgMh";
 
 RTC_DATA_ATTR State state = State::INIT;
 RTC_DATA_ATTR unsigned long startTime = 0;
@@ -213,8 +214,16 @@ void sendEmail(const MsgType& type)
   
   String httpRequestData = "value1=" + body;
   int httpResponseCode = http.POST(httpRequestData); 
-  
   http.end();
+
+  // Send Telegram messgage
+  if (MsgType::READY)
+  {
+    http.begin(client, serverKylpyReady);
+    String httpRequestData = "";
+    int httpResponseCode = http.POST(httpRequestData);
+  }
+  
   WiFi.disconnect();
 }
 
